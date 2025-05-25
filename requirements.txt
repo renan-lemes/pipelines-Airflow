@@ -1,0 +1,5 @@
+apache-airflow==2.9.0
+mysql-connector-python
+google-cloud-bigquery
+requests
+python-dotenv
