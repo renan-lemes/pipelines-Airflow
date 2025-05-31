@@ -4,6 +4,8 @@ from datetime import datetime
 import mysql.connector
 from google.cloud import bigquery
 
+
+
 # Configurações
 MYSQL_CONN = {
     'host': 'mysql',
@@ -14,7 +16,7 @@ MYSQL_CONN = {
 
 BQ_PROJECT_ID = 'seu-projeto-gcp'
 BQ_DATASET = 'seu_dataset'
-BQ_TABLE = 'tabela_destino'
+BQ_TABLE = ''
 
 # Função para extrair dados do MySQL
 def extract_from_mysql(**kwargs):
