@@ -3,26 +3,33 @@ from airflow.operators.python import PythonOperator
 from datetime import datetime
 import mysql.connector
 from google.cloud import bigquery
+from cred.load_cred import load_creds_bq, load_creds_mysql
 
+creds_bq = load_creds_bq()
 
+creds_mysql = load_creds_mysql()
 
 # Configurações
+
 MYSQL_CONN = {
-    'host': 'mysql',
-    'user': 'airflow',
-    'password': 'airflow',
-    'database': 'my_database'
+    'host': creds_mysql['HOST_MYSQL'],
+    'user': creds_mysql['USERNAME_MYSQL'],
+    'password': creds_mysql['PASSWORD_MYSQL'],
+    'database': creds_mysql['MYSQL_DATABASE']
 }
 
-BQ_PROJECT_ID = 'seu-projeto-gcp'
-BQ_DATASET = 'seu_dataset'
+BQ_PROJECT_NAME = creds_bq['BQ_PROJECT_NAME']
+BQ_PROJECT_ID = creds_bq['BQ_PROJECT_ID']
+BQ_DATASET = creds_bq['BQ_DATASET']
 BQ_TABLE = ''
+
+table_origem_mysql = 'olist_customers_dataset'
 
 # Função para extrair dados do MySQL
 def extract_from_mysql(**kwargs):
     conn = mysql.connector.connect(**MYSQL_CONN)
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM tabela_origem")
+    cursor.execute(f"SELECT * FROM {table_origem_mysql}")
     rows = cursor.fetchall()
     cursor.close()
     conn.close()
@@ -100,11 +107,11 @@ def load_to_mysql(**kwargs):
     print("Dados carregados no MySQL com sucesso.")
 
 with DAG(
-    dag_id='mysql_bigquery_bidirectional_auto_create',
+    dag_id='mysql_to_bigquery_only',
     start_date=datetime(2024, 1, 1),
     schedule_interval='@daily',
     catchup=False,
-    tags=['mysql', 'bigquery', 'etl', 'auto_create']
+    tags=['mysql', 'bigquery', 'etl']
 ) as dag:
 
     extract_mysql = PythonOperator(
@@ -117,14 +124,5 @@ with DAG(
         python_callable=load_to_bigquery
     )
 
-    extract_bigquery = PythonOperator(
-        task_id='extract_bigquery',
-        python_callable=extract_from_bigquery
-    )
-
-    load_mysql = PythonOperator(
-        task_id='load_mysql',
-        python_callable=load_to_mysql
-    )
-
-    extract_mysql >> load_bigquery >> extract_bigquery >> load_mysql
+    # Ordem de execução final
+    extract_mysql >> load_bigquery
