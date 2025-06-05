@@ -24,13 +24,15 @@ def load_creds_mysql() -> list:
     USERNAME_MYSQL = os.getenv('USERNAME_MYSQL')
     PASSWORD_MYSQL = os.getenv('PASSWORD_MYSQL')
     MYSQL_DATABASE = os.getenv('MYSQL_DATABASE')
+    PORT = os.getenv('PORT_MYSQL')
 
-    creds_mysql ={ 
+    creds_mysql = { 
         'HOST_MYSQL':HOST_MYSQL,
         'PORT_MYSQL':PORT_MYSQL,
         'USERNAME_MYSQL':USERNAME_MYSQL,
         'PASSWORD_MYSQL':PASSWORD_MYSQL,
-        'MYSQL_DATABASE':MYSQL_DATABASE
+        'MYSQL_DATABASE':MYSQL_DATABASE,
+        'PORT':PORT
     }
 
     return creds_mysql
