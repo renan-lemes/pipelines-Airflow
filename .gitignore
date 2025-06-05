@@ -2,3 +2,5 @@
 data/
 logs
 dags/__pycache__
+keys
+cred/__pycache__
