@@ -10,15 +10,17 @@ x-airflow-common:
     AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
     AIRFLOW__API__AUTH_BACKEND: 'airflow.api.auth.backend.basic_auth'
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    GOOGLE_APPLICATION_CREDENTIALS: /opt/airflow/keys/cred.json
     _PIP_ADDITIONAL_REQUIREMENTS: google-cloud-bigquery mysql-connector-python
   volumes:
     - ./dags:/opt/airflow/dags
     - ./logs:/opt/airflow/logs
     - ./plugins:/opt/airflow/plugins
+    - ./keys/cred.json:/opt/airflow/keys/cred.json
+    - ./dags/.env:/opt/airflow/dags/.env  # <--  .env
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
     - postgres
-    - mysql
 
 services:
   postgres:
@@ -31,24 +33,11 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  mysql:
-    image: mysql:8
-    environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: my_database
-      MYSQL_USER: airflow
-      MYSQL_PASSWORD: airflow
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-
   airflow-webserver:
     <<: *airflow-common
     command: webserver
     ports:
       - "8080:8080"
-
 
   airflow-scheduler:
     <<: *airflow-common
@@ -67,4 +56,3 @@ services:
 
 volumes:
   postgres_data:
-  mysql_data:
