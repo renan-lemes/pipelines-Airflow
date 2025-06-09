@@ -19,13 +19,15 @@ MYSQL_CONN = {
     'user': os.getenv('USERNAME_MYSQL'),
     'password': os.getenv('PASSWORD_MYSQL'),
     'database': os.getenv('MYSQL_DATABASE'),
-    'port': 3308
+    'port': os.getenv('PORT_MYSQL')
 }
 
 BQ_PROJECT_ID = creds_bq['BQ_PROJECT_ID']
 BQ_DATASET = creds_bq['BQ_DATASET']
 BQ_TABLE = 'customers_from_mysql'
 table_origem_mysql = 'olist_customers_dataset'
+
+table = 'warehouse'
 
 # Extração do MySQL
 def extract_from_mysql(**kwargs):
@@ -35,7 +37,7 @@ def extract_from_mysql(**kwargs):
     try:
         conn = mysql.connector.connect(**MYSQL_CONN)
         cursor = conn.cursor(dictionary=True)
-        cursor.execute(f"SELECT * FROM {table_origem_mysql}")
+        cursor.execute(f"SELECT * FROM {table}.{table_origem_mysql}")
         rows = cursor.fetchall()
     except Exception as e:
         raise Exception(f"Erro ao extrair do MySQL: {e}")
