@@ -3,6 +3,8 @@ version: '3.8'
 x-airflow-common:
   &airflow-common
   image: apache/airflow:2.9.0
+  env_file:
+    - ./dags/.env  # <-- Carrega o .env
   environment:
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
     AIRFLOW__CORE__FERNET_KEY: ''
@@ -12,12 +14,19 @@ x-airflow-common:
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
     GOOGLE_APPLICATION_CREDENTIALS: /opt/airflow/keys/cred.json
     _PIP_ADDITIONAL_REQUIREMENTS: google-cloud-bigquery mysql-connector-python
+
+    # Repassando variáveis do .env explicitamente
+    HOST_MYSQL: ${HOST_MYSQL}
+    USERNAME_MYSQL: ${USERNAME_MYSQL}
+    PASSWORD_MYSQL: ${PASSWORD_MYSQL}
+    MYSQL_DATABASE: ${MYSQL_DATABASE}
+    MYSQL_PORT: ${PORT_MYSQL}
+
   volumes:
     - ./dags:/opt/airflow/dags
     - ./logs:/opt/airflow/logs
     - ./plugins:/opt/airflow/plugins
     - ./keys/cred.json:/opt/airflow/keys/cred.json
-    - ./dags/.env:/opt/airflow/dags/.env  # <--  .env
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
     - postgres
