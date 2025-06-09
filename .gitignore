@@ -4,3 +4,4 @@ logs
 dags/__pycache__
 keys
 cred/__pycache__
+dags/readenv.py
