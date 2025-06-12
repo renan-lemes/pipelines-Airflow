@@ -11,7 +11,7 @@ load_dotenv(dotenv_path="/opt/airflow/dags/.env")
 def test_mysql_connection():
     try:
         conn = mysql.connector.connect(
-            host=os.getenv("HOST_MYSQL"),
+            host='host.docker.internal',
             user=os.getenv("USERNAME_MYSQL"),
             password=os.getenv("PASSWORD_MYSQL"),
             database=os.getenv("MYSQL_DATABASE"),
