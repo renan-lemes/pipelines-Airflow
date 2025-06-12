@@ -3,5 +3,8 @@ data/
 logs
 dags/__pycache__
 keys
-cred/__pycache__
+dags/cred/__pycache__
 dags/readenv.py
+dags/cred/*
+dags/.env
+dags/cred/__pycache__/load_cred.cpython-312.pyc
