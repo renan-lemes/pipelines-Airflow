@@ -4,7 +4,7 @@ x-airflow-common:
   &airflow-common
   image: apache/airflow:2.9.0
   env_file:
-    - ./dags/.env  # <-- Carrega o .env
+    - .env  # <-- Carrega o .env
   environment:
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
     AIRFLOW__CORE__FERNET_KEY: ''
@@ -27,6 +27,7 @@ x-airflow-common:
     - ./logs:/opt/airflow/logs
     - ./plugins:/opt/airflow/plugins
     - ./keys/cred.json:/opt/airflow/keys/cred.json
+    - ./dags/.env:/opt/airflow/dags/.env
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
     - postgres
