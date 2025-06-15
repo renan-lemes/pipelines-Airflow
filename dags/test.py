@@ -13,14 +13,14 @@ port = 3308
 table_origem_mysql = 'olist_customers_dataset'
 
 MYSQL_CONN = {
-    'host': 'host.docker.internal',             
+    'host':'host.docker.internal',             
     'user': user,
     'password': password,
     'database': database,
     'port': 3308   
 }
 
-def extract_from_mysql(MYSQL_CONN):
+def extract_from_mysql(MYSQL_CONN,table_origem_mysql):
     conn = None
     cursor = None
     
@@ -40,6 +40,6 @@ def extract_from_mysql(MYSQL_CONN):
             conn.close()
     return rows
 
-rows = extract_from_mysql(MYSQL_CONN)
+rows = extract_from_mysql(MYSQL_CONN, table_origem_mysql)
 
 print(rows)
