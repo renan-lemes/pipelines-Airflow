@@ -112,7 +112,7 @@ def load_to_bigquery(table_name, **kwargs):
         log.info("---------------------------------------------------------")
         return
     ## transforma os dados em STR
-    df = pd.DataFrame(rows).astype(str)
+    df = pd.DataFrame(rows).astype(str) 
     client = bigquery.Client()
     table_id = f"{BQ_PROJECT_ID}.{BQ_DATASET}.{table_name}"
 
