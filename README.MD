@@ -30,7 +30,7 @@ Substituir processos manuais ou scripts isolados de integração de dados por pi
 - **`list_bigquery_tables_dag`** → Lista todas as tabelas do dataset `DataLake` no BigQuery.  
 - **`mysql_to_bigquery_only`** → Carrega dados crus do MySQL para o BigQuery.  
 - **`test_env_vars_dag`** → Valida se as variáveis de ambiente configuradas no `.env` estão corretas dentro da conteinerização (Docker), garantindo conexões consistentes com diferentes bancos de dados.  
-
+- **`medallion_struct`** → Uma pipeline que segue a **Medallion Architecture** (Bronze → Silver → Gold), garantindo melhor governança e qualidade dos dados. Esse fluxo foi projetado para lidar tanto com processos upstream quanto downstream, permitindo integração com diferentes sistemas.
 ---
 
 ## 🗂️ Estrutura de Dados Utilizada
@@ -88,6 +88,5 @@ Substituir processos manuais ou scripts isolados de integração de dados por pi
 ---
 
 ## 📌 Observações
-
-- Os dados seguem o processo **Medallion Architecture** (Bronze → Silver → Gold).  
+  
 - É recomendável manter logs de execução (quantidade de registros carregados, timestamp da atualização) para monitoramento da qualidade dos dados.  
