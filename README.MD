@@ -36,7 +36,7 @@ Substituir processos manuais ou scripts isolados de integração de dados por pi
 ## 🗂️ Estrutura de Dados Utilizada
 
 - **OLIST**  
-![Diagrama Olist](img/olist-diagram.png)
+![Diagrama Olist](img/OLIST_DIAGRAM.png)
 
 ---
 
