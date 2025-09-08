@@ -10,3 +10,4 @@ dags/.env
 dags/cred/__pycache__/load_cred.cpython-312.pyc
 __pycache__/
 *.py[cod]
+dags/test.ipynb
