@@ -209,6 +209,11 @@ def transform_to_gold(**kwargs):
         log_monitoring("gold_transformation", BQ_GOLD, "olist_gold_summary", 0, f"FAILED: {e}")
         raise Exception(f"Erro ao transformar/carregar para Gold: {e}")
 
+default_args = {
+    'owner': 'Renan Lemes Leepkaln',
+    'depends_on_past': False,
+    'retries': 0
+}
 
 ## Definição da DAG
 with DAG(
@@ -216,7 +221,8 @@ with DAG(
     start_date=datetime(2024, 1, 1),
     schedule_interval="0 7-17 * * 1-5", # Rodar de segunda a sexta, das 7h às 17h, a cada hora
     catchup=False,
-    tags=["bronze", "silver", "gold", "BI", "MEDALLION", "IMPROVED"]
+    tags=["bronze", "silver", "gold", "BI", "MEDALLION", "IMPROVED"],
+    default_args=default_args
 ) as dag:
 
     # Tarefas da camada Bronze (Extração e Carregamento)
