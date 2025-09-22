@@ -14,12 +14,12 @@ load_dotenv(dotenv_path="/opt/airflow/dags/.env")
 
 ## variaveis iniciais 
 
-BQ_PROJECT_ID = os.getenv("BQ_PROJECT_ID") or "your-gcp-project-id" # Substitua 'your-gcp-project-id' pelo ID do seu projeto GCP
+BQ_PROJECT_ID = os.getenv("BQ_PROJECT_ID") ## Substitua 'your-gcp-project-id' pelo ID do seu projeto GCP
 BQ_DATALAKE = os.getenv("BQ_DATASET") ## dados que estão no datalake
 BQ_BRONZE = os.getenv("BQ_DATASET_BRONZE") ## dados da camada bronze
 BQ_SILVER = os.getenv("BQ_DATASET_SILVER")
 BQ_GOLD = os.getenv("BQ_DATASET_GOLD")
-BQ_MONITORING_DATASET = os.getenv("BQ_DATASET_LOG") or "your_monitoring_dataset" ## dados para salvar os logs dos insets. Substitua 'your_monitoring_dataset' pelo nome do seu dataset de monitoramento.
+BQ_MONITORING_DATASET = os.getenv("BQ_DATASET_LOG") ## dados para salvar os logs dos insets. Substitua 'your_monitoring_dataset' pelo nome do seu dataset de monitoramento.
 
 ## conexão com o mysql o banco principal
 MYSQL_CONN = {
@@ -42,8 +42,7 @@ MY_SQL_TABLE_PRODUCT = "olist_products_dataset"
 ## Funções de monitoramento e log
 def log_monitoring(pipeline_name, dataset_name, table_name, row_count, status):
     client = bigquery.Client()
-    table_id = f"{BQ_PROJECT_ID}.{BQ_MONITORING_DATASET}.monitoring_log"
-
+    table_id = f"{BQ_MONITORING_DATASET}" 
     rows_to_insert = [
         {
             "pipeline_name": pipeline_name,
@@ -57,6 +56,7 @@ def log_monitoring(pipeline_name, dataset_name, table_name, row_count, status):
     
     # Converter a lista de dicionários para um DataFrame do pandas
     df_log = pd.DataFrame(rows_to_insert)
+    df_log["run_date"] = pd.to_datetime(df_log["run_date"])
 
     job_config = bigquery.LoadJobConfig(
         write_disposition=bigquery.WriteDisposition.WRITE_APPEND, # Anexar ao invés de sobrescrever
@@ -178,7 +178,7 @@ def transform_to_gold(**kwargs):
     gold_table_id = f"{BQ_PROJECT_ID}.{BQ_GOLD}.olist_gold_summary"
     silver_table_id = f"{BQ_PROJECT_ID}.{BQ_SILVER}.olist_silver_dataset"
 
-    # Exemplo de agregação para a camada Gold: vendas por estado e tipo de pagamento
+    # agregação para a camada Gold: vendas por estado e tipo de pagamento
     query = f"""
         SELECT
             customer_state,
