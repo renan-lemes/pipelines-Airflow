@@ -1,5 +1,7 @@
+
 from airflow import DAG
 from airflow.operators.python import PythonOperator
+from airflow.operators.email import EmailOperator 
 from datetime import datetime
 from google.cloud import bigquery
 from google.api_core.exceptions import GoogleAPICallError
@@ -14,9 +16,9 @@ load_dotenv(dotenv_path="/opt/airflow/dags/.env")
 
 ## variaveis iniciais 
 
-BQ_PROJECT_ID = os.getenv("BQ_PROJECT_ID") ## Substitua 'your-gcp-project-id' pelo ID do seu projeto GCP
-BQ_DATALAKE = os.getenv("BQ_DATASET") ## dados que estão no datalake
-BQ_BRONZE = os.getenv("BQ_DATASET_BRONZE") ## dados da camada bronze
+BQ_PROJECT_ID = os.getenv("BQ_PROJECT_ID")  # Substitua 'your-gcp-project-id' pelo ID do seu projeto GCP
+BQ_DATALAKE = os.getenv("BQ_DATASET")       ## dados que estão no datalake
+BQ_BRONZE = os.getenv("BQ_DATASET_BRONZE")  ## dados da camada bronze
 BQ_SILVER = os.getenv("BQ_DATASET_SILVER")
 BQ_GOLD = os.getenv("BQ_DATASET_GOLD")
 BQ_MONITORING_DATASET = os.getenv("BQ_DATASET_LOG") ## dados para salvar os logs dos insets. Substitua 'your_monitoring_dataset' pelo nome do seu dataset de monitoramento.
@@ -43,6 +45,7 @@ MY_SQL_TABLE_PRODUCT = "olist_products_dataset"
 def log_monitoring(pipeline_name, dataset_name, table_name, row_count, status):
     client = bigquery.Client()
     table_id = f"{BQ_MONITORING_DATASET}" 
+
     rows_to_insert = [
         {
             "pipeline_name": pipeline_name,
@@ -212,7 +215,10 @@ def transform_to_gold(**kwargs):
 default_args = {
     'owner': 'Renan Lemes Leepkaln',
     'depends_on_past': False,
-    'retries': 0
+    'retries': 0,
+    'email_on_failure': True, # Habilitar envio de e-mail em caso de falha
+    'email_on_success': True, # Habilitar envio de e-mail em caso de sucesso
+    'email': ['renan_ll@hotmail.com'] # Substitua pelo seu endereço de e-mail
 }
 
 ## Definição da DAG
@@ -268,6 +274,52 @@ with DAG(
         python_callable=transform_to_gold,
     )
 
-    # Definição da ordem das tarefas
-    [extract_orders_to_bronze, extract_payments_to_bronze, extract_customers_to_bronze, extract_order_items_to_bronze, extract_products_to_bronze] >> transform_silver_layer >> transform_gold_layer
+    # Tarefas de notificação por e-mail para a camada Silver
+    email_silver_success = EmailOperator(
+        task_id='email_silver_success',
+        to=default_args['email'],
+        subject='Airflow DAG Sucesso: Camada Silver Concluída',
+        html_content='<p>A camada Silver da DAG {{ dag.dag_id }} foi concluída com sucesso.</p>',
+    )
 
+    email_silver_failure = EmailOperator(
+        task_id='email_silver_failure',
+        to=default_args['email'],
+        subject='Airflow DAG Falha: Camada Silver Falhou',
+        html_content='<p>A camada Silver da DAG {{ dag.dag_id }} falhou. Verifique os logs para mais detalhes.</p>',
+    )
+
+    # Tarefas de notificação por e-mail para a camada Gold
+    email_gold_success = EmailOperator(
+        task_id='email_gold_success',
+        to=default_args['email'],
+        subject='Airflow DAG Sucesso: Camada Gold Concluída',
+        html_content='<p>A camada Gold da DAG {{ dag.dag_id }} foi concluída com sucesso.</p>',
+    )
+
+    email_gold_failure = EmailOperator(
+        task_id='email_gold_failure',
+        to=default_args['email'],
+        subject='Airflow DAG Falha: Camada Gold Falhou',
+        html_content='<p>A camada Gold da DAG {{ dag.dag_id }} falhou. Verifique os logs para mais detalhes.</p>',
+    )
+
+    # Definição da ordem das tarefas
+    bronze_tasks = [
+        extract_orders_to_bronze,
+        extract_payments_to_bronze,
+        extract_customers_to_bronze,
+        extract_order_items_to_bronze,
+        extract_products_to_bronze
+    ]
+
+    # Orquestração com notificações
+    bronze_tasks >> transform_silver_layer
+    transform_silver_layer.set_downstream(email_silver_success)
+    transform_silver_layer.set_downstream(email_silver_failure)
+
+    email_silver_success >> transform_gold_layer
+    email_silver_failure >> transform_gold_layer # Gold só roda se Silver falhar, para notificar e continuar
+
+    transform_gold_layer.set_downstream(email_gold_success)
+    transform_gold_layer.set_downstream(email_gold_failure)
