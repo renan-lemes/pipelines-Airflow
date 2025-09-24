@@ -4,7 +4,7 @@ x-airflow-common:
   &airflow-common
   image: apache/airflow:2.9.0
   env_file:
-    - .env  # <-- Carrega o .env
+    - .env  
   environment:
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
     AIRFLOW__CORE__FERNET_KEY: ''
@@ -20,7 +20,17 @@ x-airflow-common:
     USERNAME_MYSQL: ${USERNAME_MYSQL}
     PASSWORD_MYSQL: ${PASSWORD_MYSQL}
     MYSQL_DATABASE: ${MYSQL_DATABASE}
-    MYSQL_PORT: ${PORT_MYSQL}
+    MYSQL_PORT: ${MYSQL_PORT}
+
+    # Configurações SMTP para envio de e-mail (Exemplo com Gmail)
+    AIRFLOW__SMTP__SMTP_HOST: smtp.gmail.com
+    AIRFLOW__SMTP__SMTP_PORT: 587
+    AIRFLOW__SMTP__SMTP_USER:  ${EMAIL}# Seu endereço de e-mail do Gmail
+    AIRFLOW__SMTP__SMTP_PASSWORD: ${KEY_GMAIL} # SUBSTITUA PELA SENHA DE APP GERADA PELO GMAIL
+    AIRFLOW__SMTP__SMTP_MAIL_FROM:  ${EMAIL} # Seu endereço de e-mail do Gmail
+    AIRFLOW__SMTP__SMTP_STARTTLS: 'True'
+    AIRFLOW__SMTP__SMTP_SSL: 'False'
+
 
   volumes:
     - ./dags:/opt/airflow/dags
@@ -62,7 +72,8 @@ services:
       --firstname admin \
       --lastname User \
       --role Admin \
-      --email renan_ll@hotmail.com"
+      --email Exemplo@hotmail.com"
 
 volumes:
   postgres_data:
+
