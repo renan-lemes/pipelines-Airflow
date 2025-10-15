@@ -1,7 +1,6 @@
-
 from airflow import DAG
 from airflow.operators.python import PythonOperator
-from airflow.operators.email import EmailOperator 
+from airflow.operators.email import EmailOperator # Importar EmailOperator
 from datetime import datetime
 from google.cloud import bigquery
 from google.api_core.exceptions import GoogleAPICallError
@@ -16,9 +15,9 @@ load_dotenv(dotenv_path="/opt/airflow/dags/.env")
 
 ## variaveis iniciais 
 
-BQ_PROJECT_ID = os.getenv("BQ_PROJECT_ID")  # Substitua 'your-gcp-project-id' pelo ID do seu projeto GCP
-BQ_DATALAKE = os.getenv("BQ_DATASET")       ## dados que estão no datalake
-BQ_BRONZE = os.getenv("BQ_DATASET_BRONZE")  ## dados da camada bronze
+BQ_PROJECT_ID = os.getenv("BQ_PROJECT_ID") # Substitua 'your-gcp-project-id' pelo ID do seu projeto GCP
+BQ_DATALAKE = os.getenv("BQ_DATASET")      ## dados que estão no datalake
+BQ_BRONZE = os.getenv("BQ_DATASET_BRONZE") ## dados da camada bronze
 BQ_SILVER = os.getenv("BQ_DATASET_SILVER")
 BQ_GOLD = os.getenv("BQ_DATASET_GOLD")
 BQ_MONITORING_DATASET = os.getenv("BQ_DATASET_LOG") ## dados para salvar os logs dos insets. Substitua 'your_monitoring_dataset' pelo nome do seu dataset de monitoramento.
@@ -44,7 +43,7 @@ MY_SQL_TABLE_PRODUCT = "olist_products_dataset"
 ## Funções de monitoramento e log
 def log_monitoring(pipeline_name, dataset_name, table_name, row_count, status):
     client = bigquery.Client()
-    table_id = f"{BQ_MONITORING_DATASET}" 
+    table_id = f'{BQ_MONITORING_DATASET}'
 
     rows_to_insert = [
         {
@@ -57,13 +56,12 @@ def log_monitoring(pipeline_name, dataset_name, table_name, row_count, status):
         }
     ]
     
-    # Converter a lista de dicionários para um DataFrame do pandas
     df_log = pd.DataFrame(rows_to_insert)
     df_log["run_date"] = pd.to_datetime(df_log["run_date"])
 
     job_config = bigquery.LoadJobConfig(
-        write_disposition=bigquery.WriteDisposition.WRITE_APPEND, # Anexar ao invés de sobrescrever
-        schema=[ # Definir o esquema da tabela de log
+        write_disposition=bigquery.WriteDisposition.WRITE_APPEND,
+        schema=[
             bigquery.SchemaField("pipeline_name", "STRING"),
             bigquery.SchemaField("dataset_name", "STRING"),
             bigquery.SchemaField("table_name", "STRING"),
@@ -75,7 +73,7 @@ def log_monitoring(pipeline_name, dataset_name, table_name, row_count, status):
 
     try:
         job = client.load_table_from_dataframe(df_log, table_id, job_config=job_config)
-        job.result() # Espera o job terminar
+        job.result()
         print(f"Log inserido com sucesso na tabela {table_id}")
     except Exception as e:
         print(f"Erro ao inserir log na tabela {table_id}: {e}")
@@ -83,19 +81,18 @@ def log_monitoring(pipeline_name, dataset_name, table_name, row_count, status):
 ## Funções para a camada Bronze
 def extract_from_bigquery_to_bronze(table_name, **kwargs):
     client = bigquery.Client()
-    source_table_id = f"{BQ_PROJECT_ID}.{BQ_DATALAKE}.{table_name}"
-    destination_table_id = f"{BQ_PROJECT_ID}.{BQ_BRONZE}.{table_name}"
+    source_table_id = f'{BQ_PROJECT_ID}.{BQ_DATALAKE}.{table_name}'
+    destination_table_id = f'{BQ_PROJECT_ID}.{BQ_BRONZE}.{table_name}'
 
     try:
         query = f"SELECT * FROM `{source_table_id}`"
         df = client.query(query).to_dataframe()
         
-        # Carregar para a camada Bronze
         job_config = bigquery.LoadJobConfig(
             write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE,
         )
         job = client.load_table_from_dataframe(df, destination_table_id, job_config=job_config)
-        job.result() # Espera o job terminar
+        job.result()
 
         row_count = df.shape[0]
         log_monitoring(f"bronze_{table_name}", BQ_BRONZE, table_name, row_count, "SUCCESS")
@@ -113,13 +110,13 @@ def extract_from_mysql_to_bronze(table_name, **kwargs):
         conn.close()
 
         client = bigquery.Client()
-        destination_table_id = f"{BQ_PROJECT_ID}.{BQ_BRONZE}.{table_name}"
+        destination_table_id = f'{BQ_PROJECT_ID}.{BQ_BRONZE}.{table_name}'
 
         job_config = bigquery.LoadJobConfig(
             write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE,
         )
         job = client.load_table_from_dataframe(df, destination_table_id, job_config=job_config)
-        job.result() # Espera o job terminar
+        job.result()
 
         row_count = df.shape[0]
         log_monitoring(f"bronze_{table_name}", BQ_BRONZE, table_name, row_count, "SUCCESS")
@@ -132,11 +129,9 @@ def extract_from_mysql_to_bronze(table_name, **kwargs):
 ## Funções para a camada Silver
 def transform_to_silver(**kwargs):
     client = bigquery.Client()
-    silver_table_id = f"{BQ_PROJECT_ID}.{BQ_SILVER}.olist_silver_dataset"
+    silver_table_id = f'{BQ_PROJECT_ID}.{BQ_SILVER}.olist_silver_dataset'
 
-    # A query comentada no código original será a base para a camada Silver
-    # Ajustando para usar os datasets Bronze e garantir a tipagem correta
-    query = f"""
+    query = f'''
         SELECT 
             O.order_id, O.customer_id, O.order_status, O.order_purchase_timestamp, O.order_approved_at,
             O.order_delivered_carrier_date, O.order_delivered_customer_date, O.order_estimated_delivery_date,
@@ -155,16 +150,15 @@ def transform_to_silver(**kwargs):
                ON O.order_id = I.order_id
         LEFT JOIN `{BQ_PROJECT_ID}.{BQ_BRONZE}.{MY_SQL_TABLE_PRODUCT}` AS PR
                ON I.product_id = PR.product_id
-    """
+    '''
 
     try:
         job_config = bigquery.QueryJobConfig(destination=silver_table_id)
         job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
         
         query_job = client.query(query, job_config=job_config)
-        query_job.result() # Espera o job terminar
+        query_job.result()
 
-        # Obter o número de linhas inseridas
         destination_table = client.get_table(silver_table_id)
         row_count = destination_table.num_rows
 
@@ -178,11 +172,10 @@ def transform_to_silver(**kwargs):
 ## Funções para a camada Gold
 def transform_to_gold(**kwargs):
     client = bigquery.Client()
-    gold_table_id = f"{BQ_PROJECT_ID}.{BQ_GOLD}.olist_gold_summary"
-    silver_table_id = f"{BQ_PROJECT_ID}.{BQ_SILVER}.olist_silver_dataset"
+    gold_table_id = f'{BQ_PROJECT_ID}.{BQ_GOLD}.olist_gold_summary'
+    silver_table_id = f'{BQ_PROJECT_ID}.{BQ_SILVER}.olist_silver_dataset'
 
-    # agregação para a camada Gold: vendas por estado e tipo de pagamento
-    query = f"""
+    query = f'''
         SELECT
             customer_state,
             payment_type,
@@ -192,16 +185,15 @@ def transform_to_gold(**kwargs):
         FROM `{silver_table_id}`
         GROUP BY customer_state, payment_type
         ORDER BY total_payment_value DESC
-    """
+    '''
 
     try:
         job_config = bigquery.QueryJobConfig(destination=gold_table_id)
         job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
         
         query_job = client.query(query, job_config=job_config)
-        query_job.result() # Espera o job terminar
+        query_job.result()
 
-        # Obter o número de linhas inseridas
         destination_table = client.get_table(gold_table_id)
         row_count = destination_table.num_rows
 
@@ -216,70 +208,64 @@ default_args = {
     'owner': 'Renan Lemes Leepkaln',
     'depends_on_past': False,
     'retries': 0,
-    'email_on_failure': True, # Habilitar envio de e-mail em caso de falha
-    'email_on_success': True, # Habilitar envio de e-mail em caso de sucesso
-    'email': ['renan_ll@hotmail.com'] # Substitua pelo seu endereço de e-mail
+    'email_on_failure': True,
+    'email_on_success': True,
+    'email': ['seu_email@example.com']
 }
 
-## Definição da DAG
 with DAG(
     dag_id="medallion_struct_improved",
     start_date=datetime(2024, 1, 1),
-    schedule_interval="0 7-17 * * 1-5", # Rodar de segunda a sexta, das 7h às 17h, a cada hora
+    schedule_interval="0 7-17 * * 1-5",
     catchup=False,
     tags=["bronze", "silver", "gold", "BI", "MEDALLION", "IMPROVED"],
     default_args=default_args
 ) as dag:
 
-    # Tarefas da camada Bronze (Extração e Carregamento)
-    extract_orders_to_bronze = PythonOperator(
-        task_id="extract_orders_to_bronze",
-        python_callable=extract_from_bigquery_to_bronze,
-        op_kwargs={"table_name": BQ_TABLE_ORDERS},
-    )
+    bronze_tasks = [
+        PythonOperator(
+            task_id="extract_orders_to_bronze",
+            python_callable=extract_from_bigquery_to_bronze,
+            op_kwargs={"table_name": BQ_TABLE_ORDERS},
+        ),
+        PythonOperator(
+            task_id="extract_payments_to_bronze",
+            python_callable=extract_from_bigquery_to_bronze,
+            op_kwargs={"table_name": BQ_TABLE_PAYMENT},
+        ),
+        PythonOperator(
+            task_id="extract_customers_to_bronze",
+            python_callable=extract_from_mysql_to_bronze,
+            op_kwargs={"table_name": MY_SQL_TABLE_CUSTOMERS},
+        ),
+        PythonOperator(
+            task_id="extract_order_items_to_bronze",
+            python_callable=extract_from_mysql_to_bronze,
+            op_kwargs={"table_name": MY_SQL_TABLE_ORDER_ITEMS},
+        ),
+        PythonOperator(
+            task_id="extract_products_to_bronze",
+            python_callable=extract_from_mysql_to_bronze,
+            op_kwargs={"table_name": MY_SQL_TABLE_PRODUCT},
+        )
+    ]
 
-    extract_payments_to_bronze = PythonOperator(
-        task_id="extract_payments_to_bronze",
-        python_callable=extract_from_bigquery_to_bronze,
-        op_kwargs={"table_name": BQ_TABLE_PAYMENT},
-    )
-
-    extract_customers_to_bronze = PythonOperator(
-        task_id="extract_customers_to_bronze",
-        python_callable=extract_from_mysql_to_bronze,
-        op_kwargs={"table_name": MY_SQL_TABLE_CUSTOMERS},
-    )
-
-    extract_order_items_to_bronze = PythonOperator(
-        task_id="extract_order_items_to_bronze",
-        python_callable=extract_from_mysql_to_bronze,
-        op_kwargs={"table_name": MY_SQL_TABLE_ORDER_ITEMS},
-    )
-
-    extract_products_to_bronze = PythonOperator(
-        task_id="extract_products_to_bronze",
-        python_callable=extract_from_mysql_to_bronze,
-        op_kwargs={"table_name": MY_SQL_TABLE_PRODUCT},
-    )
-
-    # Tarefa da camada Silver (Transformação e Carregamento)
     transform_silver_layer = PythonOperator(
         task_id="transform_silver_layer",
         python_callable=transform_to_silver,
     )
 
-    # Tarefa da camada Gold (Transformação e Carregamento)
     transform_gold_layer = PythonOperator(
         task_id="transform_gold_layer",
         python_callable=transform_to_gold,
     )
 
-    # Tarefas de notificação por e-mail para a camada Silver
     email_silver_success = EmailOperator(
         task_id='email_silver_success',
         to=default_args['email'],
-        subject='Airflow DAG Sucesso: Camada Silver Concluída',
-        html_content='<p>A camada Silver da DAG {{ dag.dag_id }} foi concluída com sucesso.</p>',
+        subject='Airflow DAG Sucesso: Camada Silver Concluida',
+        html_content='<p>A camada Silver da DAG {{ dag.dag_id }} foi concluida com sucesso.</p>',
+        trigger_rule='all_success'
     )
 
     email_silver_failure = EmailOperator(
@@ -287,14 +273,15 @@ with DAG(
         to=default_args['email'],
         subject='Airflow DAG Falha: Camada Silver Falhou',
         html_content='<p>A camada Silver da DAG {{ dag.dag_id }} falhou. Verifique os logs para mais detalhes.</p>',
+        trigger_rule='one_failed'
     )
 
-    # Tarefas de notificação por e-mail para a camada Gold
     email_gold_success = EmailOperator(
         task_id='email_gold_success',
         to=default_args['email'],
-        subject='Airflow DAG Sucesso: Camada Gold Concluída',
-        html_content='<p>A camada Gold da DAG {{ dag.dag_id }} foi concluída com sucesso.</p>',
+        subject='Airflow DAG Sucesso: Camada Gold Concluida',
+        html_content='<p>A camada Gold da DAG {{ dag.dag_id }} foi concluida com sucesso.</p>',
+        trigger_rule='all_success'
     )
 
     email_gold_failure = EmailOperator(
@@ -302,24 +289,10 @@ with DAG(
         to=default_args['email'],
         subject='Airflow DAG Falha: Camada Gold Falhou',
         html_content='<p>A camada Gold da DAG {{ dag.dag_id }} falhou. Verifique os logs para mais detalhes.</p>',
+        trigger_rule='one_failed'
     )
 
-    # Definição da ordem das tarefas
-    bronze_tasks = [
-        extract_orders_to_bronze,
-        extract_payments_to_bronze,
-        extract_customers_to_bronze,
-        extract_order_items_to_bronze,
-        extract_products_to_bronze
-    ]
-
-    # Orquestração com notificações
     bronze_tasks >> transform_silver_layer
-    transform_silver_layer.set_downstream(email_silver_success)
-    transform_silver_layer.set_downstream(email_silver_failure)
-
+    transform_silver_layer >> [email_silver_success, email_silver_failure]
     email_silver_success >> transform_gold_layer
-    email_silver_failure >> transform_gold_layer # Gold só roda se Silver falhar, para notificar e continuar
-
-    transform_gold_layer.set_downstream(email_gold_success)
-    transform_gold_layer.set_downstream(email_gold_failure)
+    transform_gold_layer >> [email_gold_success, email_gold_failure]
