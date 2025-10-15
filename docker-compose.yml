@@ -6,6 +6,9 @@ x-airflow-common:
   env_file:
     - .env  
   environment:
+    LANG: C.UTF-8
+    LC_ALL: C.UTF-8
+    PYTHONIOENCODING: UTF-8
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
     AIRFLOW__CORE__FERNET_KEY: ''
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
@@ -25,9 +28,9 @@ x-airflow-common:
     # Configurações SMTP para envio de e-mail (Exemplo com Gmail)
     AIRFLOW__SMTP__SMTP_HOST: smtp.gmail.com
     AIRFLOW__SMTP__SMTP_PORT: 587
-    AIRFLOW__SMTP__SMTP_USER:  ${EMAIL}# Seu endereço de e-mail do Gmail
+    AIRFLOW__SMTP__SMTP_USER: ${EMAIL} # Seu endereço de e-mail do Gmail
     AIRFLOW__SMTP__SMTP_PASSWORD: ${KEY_GMAIL} # SUBSTITUA PELA SENHA DE APP GERADA PELO GMAIL
-    AIRFLOW__SMTP__SMTP_MAIL_FROM:  ${EMAIL} # Seu endereço de e-mail do Gmail
+    AIRFLOW__SMTP__SMTP_MAIL_FROM: ${EMAIL} # Seu endereço de e-mail do Gmail
     AIRFLOW__SMTP__SMTP_STARTTLS: 'True'
     AIRFLOW__SMTP__SMTP_SSL: 'False'
 
@@ -72,7 +75,7 @@ services:
       --firstname admin \
       --lastname User \
       --role Admin \
-      --email Exemplo@hotmail.com"
+      --email itsbotbot602@gmail.com"
 
 volumes:
   postgres_data:
