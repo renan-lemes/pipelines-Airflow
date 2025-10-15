@@ -22,6 +22,10 @@ BQ_SILVER = os.getenv("BQ_DATASET_SILVER")
 BQ_GOLD = os.getenv("BQ_DATASET_GOLD")
 BQ_MONITORING_DATASET = os.getenv("BQ_DATASET_LOG") ## dados para salvar os logs dos insets. Substitua 'your_monitoring_dataset' pelo nome do seu dataset de monitoramento.
 
+EMAILSEND = os.getenv("EMAILSEND") ## adicionei meu email dentro do env
+EMAILSEND2 = os.getenv("EMAILSEND2") ## aqui adicionei outro 
+
+
 ## conexão com o mysql o banco principal
 MYSQL_CONN = {
     "host": "host.docker.internal",
@@ -210,7 +214,7 @@ default_args = {
     'retries': 0,
     'email_on_failure': True,
     'email_on_success': True,
-    'email': ['seu_email@example.com']
+    'email': ['seu_email@example.com', EMAILSEND, EMAILSEND2]
 }
 
 with DAG(
