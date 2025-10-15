@@ -174,6 +174,100 @@ def transform_to_silver(**kwargs):
         raise Exception(f"Erro ao transformar/carregar para Silver: {e}")
 
 ## Funções para a camada Gold
+def transform_gold_sales_by_category(**kwargs):
+    client = bigquery.Client()
+    silver_table_id = f'{BQ_PROJECT_ID}.{BQ_SILVER}.olist_silver_dataset'
+    gold_table_id = f'{BQ_PROJECT_ID}.{BQ_GOLD}.olist_gold_sales_by_category'
+
+    query = f"""
+        SELECT
+            product_category_name,
+            COUNT(DISTINCT order_id) AS total_orders,
+            SUM(payment_value) AS total_revenue,
+            AVG(price) AS avg_price
+        FROM `{silver_table_id}`
+        GROUP BY product_category_name
+        ORDER BY total_revenue DESC
+    """
+
+    try:
+        job_config = bigquery.QueryJobConfig(destination=gold_table_id)
+        job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
+        query_job = client.query(query, job_config=job_config)
+        query_job.result()
+
+        destination_table = client.get_table(gold_table_id)
+        row_count = destination_table.num_rows
+
+        log_monitoring("gold_sales_by_category", BQ_GOLD, "olist_gold_sales_by_category", row_count, "SUCCESS")
+        print(f"Camada Gold - Vendas por categoria criada ({row_count} linhas)")
+    except Exception as e:
+        log_monitoring("gold_sales_by_category", BQ_GOLD, "olist_gold_sales_by_category", 0, f"FAILED: {e}")
+        raise
+
+def transform_gold_seller_performance(**kwargs):
+    client = bigquery.Client()
+    silver_table_id = f'{BQ_PROJECT_ID}.{BQ_SILVER}.olist_silver_dataset'
+    gold_table_id = f'{BQ_PROJECT_ID}.{BQ_GOLD}.olist_gold_seller_performance'
+
+    query = f"""
+        SELECT
+            seller_id,
+            COUNT(DISTINCT order_id) AS total_orders,
+            SUM(payment_value) AS total_revenue,
+            AVG(freight_value) AS avg_freight,
+            AVG(price) AS avg_price
+        FROM `{silver_table_id}`
+        GROUP BY seller_id
+        ORDER BY total_revenue DESC
+    """
+
+    try:
+        job_config = bigquery.QueryJobConfig(destination=gold_table_id)
+        job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
+        query_job = client.query(query, job_config=job_config)
+        query_job.result()
+
+        destination_table = client.get_table(gold_table_id)
+        row_count = destination_table.num_rows
+
+        log_monitoring("gold_seller_performance", BQ_GOLD, "olist_gold_seller_performance", row_count, "SUCCESS")
+        print(f"Camada Gold - Desempenho por vendedor criada ({row_count} linhas)")
+    except Exception as e:
+        log_monitoring("gold_seller_performance", BQ_GOLD, "olist_gold_seller_performance", 0, f"FAILED: {e}")
+        raise
+
+def transform_gold_delivery_time(**kwargs):
+    client = bigquery.Client()
+    silver_table_id = f'{BQ_PROJECT_ID}.{BQ_SILVER}.olist_silver_dataset'
+    gold_table_id = f'{BQ_PROJECT_ID}.{BQ_GOLD}.olist_gold_delivery_time'
+
+    query = f"""
+        SELECT
+            customer_state,
+            AVG(TIMESTAMP_DIFF(order_delivered_customer_date, order_purchase_timestamp, DAY)) AS avg_delivery_days,
+            COUNT(order_id) AS total_orders
+        FROM `{silver_table_id}`
+        WHERE order_delivered_customer_date IS NOT NULL
+        GROUP BY customer_state
+        ORDER BY avg_delivery_days
+    """
+
+    try:
+        job_config = bigquery.QueryJobConfig(destination=gold_table_id)
+        job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
+        query_job = client.query(query, job_config=job_config)
+        query_job.result()
+
+        destination_table = client.get_table(gold_table_id)
+        row_count = destination_table.num_rows
+
+        log_monitoring("gold_delivery_time", BQ_GOLD, "olist_gold_delivery_time", row_count, "SUCCESS")
+        print(f"Camada Gold - Tempo médio de entrega criada ({row_count} linhas)")
+    except Exception as e:
+        log_monitoring("gold_delivery_time", BQ_GOLD, "olist_gold_delivery_time", 0, f"FAILED: {e}")
+        raise
+
 def transform_to_gold(**kwargs):
     client = bigquery.Client()
     gold_table_id = f'{BQ_PROJECT_ID}.{BQ_GOLD}.olist_gold_summary'
@@ -295,8 +389,26 @@ with DAG(
         html_content='<p>A camada Gold da DAG {{ dag.dag_id }} falhou. Verifique os logs para mais detalhes.</p>',
         trigger_rule='one_failed'
     )
+    transform_gold_sales_by_category_task = PythonOperator(
+        task_id="transform_gold_sales_by_category",
+        python_callable=transform_gold_sales_by_category,
+    )
+
+    transform_gold_seller_performance_task = PythonOperator(
+        task_id="transform_gold_seller_performance",
+        python_callable=transform_gold_seller_performance,
+    )
+
+    transform_gold_delivery_time_task = PythonOperator(
+        task_id="transform_gold_delivery_time",
+        python_callable=transform_gold_delivery_time,
+    )
+
 
     bronze_tasks >> transform_silver_layer
     transform_silver_layer >> [email_silver_success, email_silver_failure]
-    email_silver_success >> transform_gold_layer
+    email_silver_success >> [transform_gold_layer, transform_gold_sales_by_category_task,transform_gold_seller_performance_task,transform_gold_delivery_time_task]    
     transform_gold_layer >> [email_gold_success, email_gold_failure]
+    transform_gold_sales_by_category_task >> [email_gold_success, email_gold_failure]
+    transform_gold_seller_performance_task >> [email_gold_success, email_gold_failure]
+    transform_gold_delivery_time_task >> [email_gold_success, email_gold_failure]
