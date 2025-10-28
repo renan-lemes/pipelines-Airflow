@@ -42,7 +42,7 @@ Substituir processos manuais ou scripts isolados por **pipelines orquestrados** 
 ## 🗂️ Estrutura de Dados Utilizada
 
 **OLIST Dataset**  
-![Diagrama Olist](/img/OLIST_DIAGRAM.png)
+![Diagrama Olist](./img/OLIST_DIAGRAM.png)
 
 ---
 
@@ -134,7 +134,7 @@ A pipeline **`medallion_struct`** segue o modelo de camadas **Bronze**, **Silver
 
 📊 **Representação Visual da Arquitetura:**
 💡 Exemplo de execução no Airflow UI (DAG Medallion):
-![DAG Medallion Exemplo](/img/ExemploDag.png)
+![DAG Medallion Exemplo](./img/ExemploDag.png)
 
 ---
 
@@ -142,7 +142,7 @@ A pipeline **`medallion_struct`** segue o modelo de camadas **Bronze**, **Silver
 
 Após o processamento dos dados nas camadas *Bronze*, *Silver* e *Gold*, foi criado um **dashboard no Looker Studio** para análise e visualização dos dados refinados.  
 
-![Dashboard](/img/Dash.png)
+![Dashboard](./img/Dash.png)
 
 🔗 **Acesse o Dashboard:**  
 [https://lookerstudio.google.com/u/0/reporting/a3eccf51-1a31-44b7-9e57-9faac8efced6/page/iURdF](https://lookerstudio.google.com/u/0/reporting/a3eccf51-1a31-44b7-9e57-9faac8efced6/page/iURdF)
