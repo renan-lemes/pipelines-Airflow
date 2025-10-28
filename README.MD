@@ -55,7 +55,6 @@ Substituir processos manuais ou scripts isolados por **pipelines orquestrados** 
 - [Gmail API](https://developers.google.com/gmail/api) – envio automático de notificações em caso de erro nas pipelines  
 - [Docker & Docker Compose](https://www.docker.com/) – conteinerização dos serviços  
 - [Git & GitHub](https://github.com/) – controle de versão  
-- [GitHub Actions](https://github.com/features/actions) – integração contínua (CI/CD) para deploy automatizado dos DAGs  
 
 ---
 
