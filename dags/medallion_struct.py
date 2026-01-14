@@ -238,35 +238,63 @@ def transform_gold_seller_performance(**kwargs):
         raise
 
 def transform_gold_delivery_time(**kwargs):
+    from google.cloud import bigquery
+
     client = bigquery.Client()
+
     silver_table_id = f'{BQ_PROJECT_ID}.{BQ_SILVER}.olist_silver_dataset'
     gold_table_id = f'{BQ_PROJECT_ID}.{BQ_GOLD}.olist_gold_delivery_time'
 
     query = f"""
         SELECT
             customer_state,
-            AVG(TIMESTAMP_DIFF(order_delivered_customer_date, order_purchase_timestamp, DAY)) AS avg_delivery_days,
+            AVG(
+                TIMESTAMP_DIFF(
+                    SAFE_CAST(order_delivered_customer_date AS TIMESTAMP),
+                    SAFE_CAST(order_purchase_timestamp AS TIMESTAMP),
+                    DAY
+                )
+            ) AS avg_delivery_days,
             COUNT(order_id) AS total_orders
         FROM `{silver_table_id}`
         WHERE order_delivered_customer_date IS NOT NULL
+          AND order_purchase_timestamp IS NOT NULL
         GROUP BY customer_state
         ORDER BY avg_delivery_days
     """
 
     try:
-        job_config = bigquery.QueryJobConfig(destination=gold_table_id)
-        job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
+        job_config = bigquery.QueryJobConfig(
+            destination=gold_table_id,
+            write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE
+        )
+
         query_job = client.query(query, job_config=job_config)
         query_job.result()
 
         destination_table = client.get_table(gold_table_id)
         row_count = destination_table.num_rows
 
-        log_monitoring("gold_delivery_time", BQ_GOLD, "olist_gold_delivery_time", row_count, "SUCCESS")
+        log_monitoring(
+            "gold_delivery_time",
+            BQ_GOLD,
+            "olist_gold_delivery_time",
+            row_count,
+            "SUCCESS"
+        )
+
         print(f"Camada Gold - Tempo médio de entrega criada ({row_count} linhas)")
+
     except Exception as e:
-        log_monitoring("gold_delivery_time", BQ_GOLD, "olist_gold_delivery_time", 0, f"FAILED: {e}")
+        log_monitoring(
+            "gold_delivery_time",
+            BQ_GOLD,
+            "olist_gold_delivery_time",
+            0,
+            f"FAILED: {e}"
+        )
         raise
+
 
 def transform_to_gold(**kwargs):
     client = bigquery.Client()
