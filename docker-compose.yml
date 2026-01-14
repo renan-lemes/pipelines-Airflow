@@ -1,70 +1,85 @@
-version: '3.8'
+version: "3.8"
 
-x-airflow-common:
-  &airflow-common
+x-airflow-common: &airflow-common
   image: apache/airflow:2.9.0
   env_file:
-    - .env  
+    - .env
   environment:
+    # Locale / Encoding
     LANG: C.UTF-8
     LC_ALL: C.UTF-8
     PYTHONIOENCODING: UTF-8
+
+    # Core Airflow
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
-    AIRFLOW__CORE__FERNET_KEY: ''
+    AIRFLOW__CORE__FERNET_KEY: h8Z9wJz8QZ1Hn4mZkP2YQXjZ6p5Zc1Lw7A==
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
     AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
-    AIRFLOW__API__AUTH_BACKEND: 'airflow.api.auth.backend.basic_auth'
-    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+
+    # Database
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+
+    # Webserver
+    AIRFLOW__WEBSERVER__EXPOSE_CONFIG: 'true'
+    AIRFLOW__WEBSERVER__SECRET_KEY: 'minha_chave_super_secreta_123'
+
+    # API
+    AIRFLOW__API__AUTH_BACKEND: airflow.api.auth.backend.basic_auth
+
+    # BigQuery
     GOOGLE_APPLICATION_CREDENTIALS: /opt/airflow/keys/cred.json
     _PIP_ADDITIONAL_REQUIREMENTS: google-cloud-bigquery mysql-connector-python
 
-    # Repassando variáveis do .env explicitamente
+    # MySQL (opcional)
     HOST_MYSQL: ${HOST_MYSQL}
     USERNAME_MYSQL: ${USERNAME_MYSQL}
     PASSWORD_MYSQL: ${PASSWORD_MYSQL}
     MYSQL_DATABASE: ${MYSQL_DATABASE}
     MYSQL_PORT: ${MYSQL_PORT}
 
-    # Configurações SMTP para envio de e-mail (Exemplo com Gmail)
+    # SMTP (opcional)
     AIRFLOW__SMTP__SMTP_HOST: smtp.gmail.com
     AIRFLOW__SMTP__SMTP_PORT: 587
-    AIRFLOW__SMTP__SMTP_USER: ${EMAIL} # Seu endereço de e-mail do Gmail
-    AIRFLOW__SMTP__SMTP_PASSWORD: ${KEY_GMAIL} # SUBSTITUA PELA SENHA DE APP GERADA PELO GMAIL
-    AIRFLOW__SMTP__SMTP_MAIL_FROM: ${EMAIL} # Seu endereço de e-mail do Gmail
+    AIRFLOW__SMTP__SMTP_USER: ${EMAIL}
+    AIRFLOW__SMTP__SMTP_PASSWORD: ${KEY_GMAIL}
+    AIRFLOW__SMTP__SMTP_MAIL_FROM: ${EMAIL}
     AIRFLOW__SMTP__SMTP_STARTTLS: 'True'
     AIRFLOW__SMTP__SMTP_SSL: 'False'
-
-
   volumes:
     - ./dags:/opt/airflow/dags
+    - ./data:/opt/airflow/dags/data
+    - ./keys:/opt/airflow/keys
     - ./logs:/opt/airflow/logs
-    - ./plugins:/opt/airflow/plugins
-    - ./keys/cred.json:/opt/airflow/keys/cred.json
-    - ./dags/.env:/opt/airflow/dags/.env
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
     - postgres
 
 services:
+
   postgres:
-    container_name: airflow_postgres
     image: postgres:13
+    container_name: airflow_postgres
     environment:
       POSTGRES_USER: airflow
       POSTGRES_PASSWORD: airflow
       POSTGRES_DB: airflow
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres-db-volume:/var/lib/postgresql/data
+    restart: always
 
   airflow-webserver:
     <<: *airflow-common
+    container_name: airflow-webserver
     command: webserver
     ports:
       - "8080:8080"
+    restart: always
 
   airflow-scheduler:
     <<: *airflow-common
+    container_name: airflow-scheduler
     command: scheduler
+    restart: always
 
   airflow-init:
     <<: *airflow-common
@@ -76,7 +91,9 @@ services:
       --lastname User \
       --role Admin \
       --email itsbotbot602@gmail.com"
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./data:/opt/airflow/dags/data
 
 volumes:
-  postgres_data:
-
+  postgres-db-volume:
